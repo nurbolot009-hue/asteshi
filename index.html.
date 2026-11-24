@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Asteshi</title>
+<style>
+  :root { --bg:#04070f; --bg2:#0a1530; --text:#e8eefc; --muted:#7d8bab; --accent:#4d7cff; color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body { background: radial-gradient(ellipse at 50% 35%, var(--bg2) 0%, var(--bg) 70%); color: var(--text);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; overflow: hidden; position: relative;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  body::before, body::after { content: ""; position: fixed; left: 0; right: 0; height: 9vh; background: #000; z-index: 5; pointer-events: none; }
+  body::before { top: 0; } body::after { bottom: 0; }
+  .glow { position: absolute; left: 50%; top: 50%; width: 70vmin; height: 70vmin; margin: -35vmin 0 0 -35vmin; border-radius: 50%;
+    background: radial-gradient(circle, rgba(77,124,255,.22), transparent 65%); filter: blur(30px); animation: breathe 7s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { opacity: .6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; z-index: 3; transition: opacity 1s ease; }
+  .hidden { opacity: 0; pointer-events: none; }
+  .tag { font-size: 11px; letter-spacing: .5em; text-transform: uppercase; color: var(--muted); margin-bottom: 24px; }
+  .line { width: 1px; height: 44px; background: linear-gradient(var(--accent), transparent); margin: 0 auto 24px; }
+  #game { justify-content: flex-start; padding-top: 14vh; }
+  #game h1 { font-weight: 300; letter-spacing: .3em; text-transform: uppercase; font-size: clamp(16px, 4vw, 22px); }
+  #game p { margin-top: 12px; font-size: 12px; letter-spacing: .2em; color: var(--muted); }
+  .bar { width: min(260px, 60vw); height: 2px; background: rgba(125,155,255,.18); margin-top: 22px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: 0 0 12px var(--accent); transition: width .3s ease; }
+  #count { margin-top: 10px; font-size: 12px; letter-spacing: .3em; color: var(--muted); }
+  #stage { position: absolute; left: 50%; top: 56%; width: 140px; height: 140px; margin: -70px 0 0 -70px; }
+  #stage div { position: absolute; inset: 0; border-radius: 50%; }
+  #target { border: 1px solid rgba(232,238,252,.55); transition: box-shadow .25s, border-color .25s; }
+  #target.ok { border-color: #fff; box-shadow: 0 0 50px rgba(77,124,255,.9), inset 0 0 30px rgba(77,124,255,.5); }
+  #target.bad { border-color: #ff5d73; box-shadow: 0 0 30px rgba(255,93,115,.5); }
+  #ring { border: 2px solid var(--accent); box-shadow: 0 0 22px rgba(77,124,255,.7); will-change: transform; }
+  #dot { inset: 64px !important; background: #fff; box-shadow: 0 0 14px #fff; }
+  #msg { position: absolute; left: 0; right: 0; top: calc(56% + 110px); font-size: 12px; letter-spacing: .4em; text-transform: uppercase; color: var(--muted); }
+  .about { max-width: 340px; margin-bottom: 34px; }
+  .about .big { font-size: clamp(18px, 4.8vw, 24px); font-weight: 300; letter-spacing: .06em; line-height: 1.4; }
+  .about .small { margin-top: 8px; font-size: 12px; letter-spacing: .2em; color: var(--muted); }
+  .about .big2 { margin-top: 22px; font-size: clamp(14px, 3.8vw, 17px); font-weight: 300; letter-spacing: .05em; line-height: 1.5; color: #b9c7ea; }
+  .about .big2 b { color: #fff; font-weight: 600; white-space: nowrap; }
+  .btn { display: inline-block; text-decoration: none; color: var(--text); font-size: clamp(15px, 4vw, 21px); font-weight: 300;
+    letter-spacing: .22em; text-transform: uppercase; padding: 18px 28px; border: 1px solid rgba(125,155,255,.35); border-radius: 2px;
+    background: rgba(20,40,100,.15); transition: all .5s ease; }
+  .btn b { font-weight: 600; color: #fff; }
+  .btn:hover, .btn:active { border-color: var(--accent); background: rgba(77,124,255,.18); box-shadow: 0 0 40px rgba(77,124,255,.35); letter-spacing: .28em; }
+  .sub { margin-top: 20px; font-size: 12px; letter-spacing: .3em; color: var(--muted); }
+  #final.show > * { animation: rise 1.4s ease both; }
+  #final.show > :nth-child(2) { animation-delay: .15s; } #final.show > :nth-child(3) { animation-delay: .4s; }
+  #final.show > :nth-child(4) { animation-delay: .8s; } #final.show > :nth-child(5) { animation-delay: 1.1s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <section class="screen" id="game">
+    <h1>Find the focus</h1>
+    <p>tap when the rings align</p>
+    <div class="bar"><i id="fill"></i></div>
+    <div id="count">0 / 5</div>
+    <div id="stage"><div id="target"></div><div id="ring"></div><div id="dot"></div></div>
+    <div id="msg"></div>
+  </section>
+  <section class="screen hidden" id="final">
+    <div class="tag">Asteshi</div>
+    <div class="line"></div>
+    <div class="about">
+      <div class="big">One of the best in his field</div>
+      <div class="small">( left it on 10.10.2025 )</div>
+      <div class="big2">A person whose balance exceeded <b>100,000₽</b></div>
+    </div>
+    <a class="btn" href="https://t.me/LYCVEO" target="_blank" rel="noopener"><b>Start</b> in Asteshi's DMs</a>
+    <div class="sub">@LYCVEO</div>
+  </section>
+<script>
+  var GOAL = 5, score = 0, done = false, dur = 1700, t0 = performance.now();
+  var ring = document.getElementById('ring'), target = document.getElementById('target');
+  var fill = document.getElementById('fill'), count = document.getElementById('count'), msg = document.getElementById('msg');
+  function scale() { var t = ((performance.now() - t0) % dur) / dur; return 2.5 - 2.2 * t; }
+  function frame() { if (done) return; ring.style.transform = 'scale(' + scale().toFixed(3) + ')'; requestAnimationFrame(frame); }
+  requestAnimationFrame(frame);
+  function flash(cls, text) { target.className = cls; msg.textContent = text;
+    setTimeout(function () { target.className = ''; msg.textContent = ''; }, 450); }
+  document.getElementById('game').addEventListener('pointerdown', function (e) {
+    if (done) return; e.preventDefault();
+    if (Math.abs(scale() - 1) <= 0.14) { score++; dur = Math.max(900, dur * 0.92); flash('ok', 'locked'); }
+    else { score = Math.max(0, score - 1); flash('bad', 'missed'); }
+    fill.style.width = (score / GOAL * 100) + '%';
+    count.textContent = score + ' / ' + GOAL;
+    if (score >= GOAL) win();
+  });
+  function win() { done = true; setTimeout(function () {
+    document.getElementById('game').classList.add('hidden');
+    var f = document.getElementById('final'); f.classList.remove('hidden'); f.classList.add('show'); }, 700); }
+</script>
+</body>
+</html>
